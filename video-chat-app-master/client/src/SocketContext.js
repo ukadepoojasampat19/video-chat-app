@@ -8,7 +8,7 @@ import { useRef } from "react";
 
 const SocketContext = createContext();
 
-const socket = io('https://video-server-3yjy.onrender.com');
+const socket = io('https://video-chat-app-6coc.onrender.com');
 
 const ContextProvider = ({ children }) => {
 
