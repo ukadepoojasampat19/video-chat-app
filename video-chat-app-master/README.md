@@ -1,5 +1,5 @@
 # video-chat-app
-# Here is link to website - video-chat-app-seven-zeta.vercel.app
+# Here is link to website - video-chat-app-seven-zeta.vercel.app/
 # <b>it is a simple video calling website, where you can video chat with anyone/your friend
 To use this app:
 1. write your name for identification.
