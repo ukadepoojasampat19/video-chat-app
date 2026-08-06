@@ -12,6 +12,8 @@ const io = require("socket.io")(server, {
     }
 }); 
 
+// Stores all active meeting rooms
+const rooms = {};
 
 app.use(cors());
 
@@ -22,6 +24,23 @@ app.get("/", (req, res) => {
 
 io.on("connection", (socket) => {
     socket.emit("me", socket.id);
+
+    socket.on("join-room", (roomId) => {
+
+    // Create room if it doesn't exist
+    if (!rooms[roomId]) {
+        rooms[roomId] = [];
+    }
+
+    // Add current user
+    rooms[roomId].push(socket.id);
+
+    console.log("=================================");
+    console.log("Room :", roomId);
+    console.log("Users :", rooms[roomId]);
+    console.log("=================================");
+
+});
 
     socket.on("disconnect", () => {
         socket.broadcast.emit("callEnded");

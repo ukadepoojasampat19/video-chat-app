@@ -38,6 +38,8 @@ const ContextProvider = ({ children }) => {
         getStream();
         socket.on('me', (id) => { setMe(id) })
         
+        socket.emit("join-room", "room-1");
+        
         socket.on('callUser', ({ from, name: callerName, signal }) => {
             setCall({ isReceivingCall: true, from, name: callerName, signal });
         });
