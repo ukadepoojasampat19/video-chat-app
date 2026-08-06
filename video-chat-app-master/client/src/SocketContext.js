@@ -8,7 +8,9 @@ import { useRef } from "react";
 
 const SocketContext = createContext();
 
-const socket = io('https://video-chat-app-6coc.onrender.com');
+//const socket = io('https://video-chat-app-6coc.onrender.com');
+
+const socket = io('http://localhost:5000');
 
 const ContextProvider = ({ children }) => {
 
@@ -18,11 +20,42 @@ const ContextProvider = ({ children }) => {
     const [name, setName] = useState('');
     const [call, setCall] = useState({});
     const [me, setMe] = useState('');
+    const [existingUsers, setExistingUsers] = useState([]);
+    const [peers, setPeers] = useState([]);
 
     const myVideo = useRef();
     const userVideo = useRef();
-    const connectionRef = useRef();
+    const connectionRef = useRef(); // Existing one-to-one connection
+    const peersRef = useRef([]);  // Future group video peer connections
 
+ const createPeer = (userSocketId) => {
+
+    console.log("Creating Peer for :", userSocketId);
+
+    const peer = new Peer({
+        initiator: true,
+        trickle: false,
+        stream: stream
+    });
+
+    peer.on("signal", (signal) => {
+
+        console.log("Offer Generated");
+
+        socket.emit("send-offer", {
+            target: userSocketId,
+            caller: me,
+            signal
+        });
+
+    });
+
+    peersRef.current.push({
+        socketId: userSocketId,
+        peer: peer
+    });
+
+};
     useEffect(() => {
 
         const getStream = async () => {
@@ -37,12 +70,51 @@ const ContextProvider = ({ children }) => {
         };
         getStream();
         socket.on('me', (id) => { setMe(id) })
-        
-        socket.emit("join-room", "room-1");
-        
+        //each browser has the separte socket.id
+console.log("Joining Room...");
+ socket.emit("join-room", "room-1");
+       
+        socket.on("existing-users", (users) => {
+
+    console.log("Existing Users :", users);
+
+    setExistingUsers(users);
+
+    users.forEach((user) => {
+        createPeer(user);
+    });
+
+});
+        //informing that new user is joining the room 
+         socket.on("user-joined", (data) => {
+    console.log("New User Joined:", data.socketId);
+});
+
+socket.on("receive-offer", ({ caller, signal }) => {
+
+    console.log("Offer Received From :", caller);
+    console.log(signal);
+
+});
+
         socket.on('callUser', ({ from, name: callerName, signal }) => {
             setCall({ isReceivingCall: true, from, name: callerName, signal });
         });
+
+
+        return () => {
+
+    socket.off("me");
+
+    socket.off("existing-users");
+
+    socket.off("user-joined");
+
+     socket.off("receive-offer");
+
+    socket.off("callUser");
+
+};
     }, []);
     
 //     useEffect(() => {

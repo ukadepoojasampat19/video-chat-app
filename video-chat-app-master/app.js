@@ -25,26 +25,74 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
     socket.emit("me", socket.id);
 
-    socket.on("join-room", (roomId) => {
+socket.on("join-room", (roomId) => {
 
-    // Create room if it doesn't exist
+
+   
+        console.log("JOIN ROOM EVENT RECEIVED");
+  
     if (!rooms[roomId]) {
         rooms[roomId] = [];
     }
 
-    // Add current user
+    // Users already inside the room
+    const existingUsers = [...rooms[roomId]];
+console.log("Sending Existing Users:", existingUsers);
+    // Send existing users only to the newly joined user
+    socket.emit("existing-users", existingUsers);
+
+    socket.join(roomId);
+
+    // Now add current user
     rooms[roomId].push(socket.id);
+
+    // Notify everyone already inside the room
+    socket.to(roomId).emit("user-joined", {
+    socketId: socket.id
+    }); 
+
 
     console.log("=================================");
     console.log("Room :", roomId);
-    console.log("Users :", rooms[roomId]);
+    console.log("Existing Users :", existingUsers);
+    console.log("Current Users :", rooms[roomId]);
     console.log("=================================");
 
 });
 
-    socket.on("disconnect", () => {
-        socket.broadcast.emit("callEnded");
+socket.on("send-offer", ({ target, caller, signal }) => {
+
+    console.log("Offer received on server");
+    console.log("From:", caller);
+    console.log("To:", target);
+
+    io.to(target).emit("receive-offer", {
+        caller,
+        signal
     });
+
+});
+
+  socket.on("disconnect", () => {
+
+    // Remove disconnected socket from every room
+    for (const roomId in rooms) {
+
+        rooms[roomId] = rooms[roomId].filter(
+            (id) => id !== socket.id
+        );
+
+        // Remove room if it becomes empty
+        if (rooms[roomId].length === 0) {
+            delete rooms[roomId];
+        }
+    }
+
+    socket.broadcast.emit("callEnded");
+
+    console.log("User Disconnected:", socket.id);
+    console.log("Rooms:", rooms);
+});
     socket.on("callUser", ({ userToCall, signalData, from, name }) => {
 		io.to(userToCall).emit("callUser", { signal: signalData, from, name });
 	});
