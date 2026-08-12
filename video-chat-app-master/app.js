@@ -73,6 +73,16 @@ socket.on("send-offer", ({ target, caller, signal }) => {
 
 });
 
+socket.on("send-answer", ({ target, answer }) => {
+
+    console.log("Answer received on server");
+
+    io.to(target).emit("receive-answer", {
+        answer,
+        from: socket.id
+    });
+
+});
   socket.on("disconnect", () => {
 
     // Remove disconnected socket from every room

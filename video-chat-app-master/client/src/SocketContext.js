@@ -41,10 +41,12 @@ const ContextProvider = ({ children }) => {
     peer.on("signal", (signal) => {
 
         console.log("Offer Generated");
+        console.log("Sending offer from:", socket.id);
+        console.log("Sending offer to:", userSocketId);
 
         socket.emit("send-offer", {
             target: userSocketId,
-            caller: me,
+            caller: socket.id,
             signal
         });
 
@@ -69,7 +71,10 @@ const ContextProvider = ({ children }) => {
             }
         };
         getStream();
-        socket.on('me', (id) => { setMe(id) })
+       socket.on("me", (id) => {
+    console.log("My Socket ID:", id);
+    setMe(id);
+});
         //each browser has the separte socket.id
 console.log("Joining Room...");
  socket.emit("join-room", "room-1");
@@ -93,7 +98,47 @@ console.log("Joining Room...");
 socket.on("receive-offer", ({ caller, signal }) => {
 
     console.log("Offer Received From :", caller);
-    console.log(signal);
+
+    const peer = new Peer({
+        initiator: false,
+        trickle: false,
+        stream: stream
+    });
+
+    peer.on("signal", (answer) => {
+
+        console.log("Answer Generated");
+        console.log("Sending answer from:", socket.id);
+        console.log("Sending answer to:", caller);
+
+        socket.emit("send-answer", {
+            target: caller,
+            answer
+        });
+
+    });
+
+    peer.signal(signal);
+
+    peersRef.current.push({
+        socketId: caller,
+        peer: peer
+    });
+
+});
+
+socket.on("receive-answer", ({ answer, from }) => {
+
+    console.log("Answer Received From:", from);
+
+    const peerObj = peersRef.current.find(
+        (item) => item.socketId === from
+    );
+
+    if (peerObj) {
+        peerObj.peer.signal(answer);
+        console.log("Answer passed to Peer");
+    }
 
 });
 
@@ -113,7 +158,7 @@ socket.on("receive-offer", ({ caller, signal }) => {
      socket.off("receive-offer");
 
     socket.off("callUser");
-
+ socket.off("receive-answer");
 };
     }, []);
     
